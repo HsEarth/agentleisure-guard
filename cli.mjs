@@ -8,6 +8,7 @@ import { readFileSync } from "node:fs";
 import { classifyCall, scanUntrusted } from "./agent-guard.mjs";
 import { runMcpGuard, runMcpGuardRemote } from "./mcp-guard.mjs";
 import { DEFAULT_SNAPSHOT_DIR, listSnapshots, restoreSnapshot } from "./snapshots.mjs";
+import { POLICY_FILE, describeRules, findPolicy, loadPolicy, validatePolicy, writePolicyTemplate } from "./policy.mjs";
 
 const HELP = `agentleisure-guard: hard limits for AI agent tools
 
@@ -26,6 +27,9 @@ const HELP = `agentleisure-guard: hard limits for AI agent tools
         --no-taint           do not require approval for outbound calls after a result tried to instruct the agent
         --snapshots <dir>    where to keep copies of files before a call changes them (default ~/.agentleisure/snapshots)
         --no-snapshot        do not copy files before a call changes them
+        --policy <file>      project rules (default: agentleisure.policy.json in the working directory)
+        --observe            block nothing; log what would be stopped and print a summary on exit
+        --no-agent-tools     do not add agentleisure_policy and agentleisure_ask_human to the server's tools
       Environment:
         AGENTLEISURE_KEY        agent key from agentleisure.com/console: destructive calls wait for one-click approval
         AGENTLEISURE_NOTIFY_URL Slack or Discord webhook that receives the approval link
@@ -33,6 +37,7 @@ const HELP = `agentleisure-guard: hard limits for AI agent tools
   agentleisure-guard check <tool> '<json args>'
   agentleisure-guard scan <file>    (use - for stdin)
   agentleisure-guard undo [id] [--snapshots <dir>]   list snapshots, or restore one
+  agentleisure-guard policy init|check [file]       create or validate agentleisure.policy.json
 `;
 
 const [command, ...rest] = process.argv.slice(2);
@@ -53,6 +58,9 @@ if (command === "mcp") {
     else if (flag === "--no-scan") options.scan = false;
     else if (flag === "--no-taint") options.taint = false;
     else if (flag === "--no-snapshot") options.snapshots = false;
+    else if (flag === "--policy") options.policyPath = flags[++index];
+    else if (flag === "--observe") options.observeFlag = true;
+    else if (flag === "--no-agent-tools") options.agentTools = false;
     else if (flag === "--snapshots") options.snapshotDir = flags[++index];
     else if (flag === "--remember-approval") options.rememberApprovalMs = Math.max(0, Number(flags[++index]) || 0) * 60_000;
     else if (flag === "--url") url = flags[++index];
@@ -69,11 +77,34 @@ if (command === "mcp") {
     } else { process.stderr.write(`unknown option ${flag}
 ${HELP}`); process.exit(2); }
   }
+  // Project policy: --policy <file>, or agentleisure.policy.json in the working directory.
+  const policyPath = options.policyPath ?? findPolicy();
+  if (policyPath) {
+    try { options.policy = loadPolicy(policyPath); }
+    catch (error) { process.stderr.write(`[agentleisure-guard] policy error: ${error instanceof Error ? error.message : error}\n`); process.exit(2); }
+    if (options.policy.loop_limit !== undefined && !flags.includes("--loop-limit")) options.loopLimit = options.policy.loop_limit;
+    if (options.policy.remember_approval_minutes !== undefined && !flags.includes("--remember-approval")) options.rememberApprovalMs = options.policy.remember_approval_minutes * 60_000;
+    process.stderr.write(`[agentleisure-guard] policy: ${policyPath}\n`);
+  }
+  options.observe = options.observeFlag === true || options.policy?.observe === true;
+  if (options.observe) process.stderr.write("[agentleisure-guard] observe mode: nothing is blocked; calls that would be stopped are logged and summarised on exit\n");
   if (url) {
     try { runMcpGuardRemote(url, options); } catch (error) { process.stderr.write(`${error instanceof Error ? error.message : error}
 `); process.exit(2); }
   } else if (target.length) runMcpGuard(target[0], target.slice(1), options);
   else { process.stderr.write(HELP); process.exit(2); }
+} else if (command === "policy") {
+  const [action = "check", file = POLICY_FILE] = rest;
+  if (action === "init") {
+    try { writePolicyTemplate(file); process.stdout.write(`Created ${file}. Edit it, commit it, and the gateway picks it up from the working directory.\n`); }
+    catch (error) { process.stderr.write(`${error instanceof Error ? error.message : error}\n`); process.exitCode = 1; }
+  } else if (action === "check") {
+    try {
+      const { errors } = validatePolicy(JSON.parse(readFileSync(file, "utf8")));
+      if (errors.length) { process.stderr.write(`${file}:\n${errors.map(error => `  - ${error}`).join("\n")}\n`); process.exitCode = 1; }
+      else process.stdout.write(`${file} is valid.\n\n${describeRules(loadPolicy(file), { approver: Boolean(process.env.AGENTLEISURE_KEY) })}\n`);
+    } catch (error) { process.stderr.write(`${file}: ${error instanceof Error ? error.message : error}\n`); process.exitCode = 1; }
+  } else { process.stderr.write("usage: agentleisure-guard policy init|check [file]\n"); process.exitCode = 2; }
 } else if (command === "undo") {
   const dirFlag = rest.indexOf("--snapshots");
   const dir = dirFlag >= 0 ? rest[dirFlag + 1] : DEFAULT_SNAPSHOT_DIR;

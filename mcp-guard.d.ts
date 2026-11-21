@@ -1,5 +1,10 @@
 import type { ChildProcess } from "node:child_process";
 
+export type Policy = { observe?: boolean; deny_tools?: string[]; ask_tools?: string[]; allow_tools?: string[]; protected_paths?: string[];
+  allowed_hosts?: string[]; loop_limit?: number; remember_approval_minutes?: number };
+export const POLICY_TOOL: { name: "agentleisure_policy"; description: string; inputSchema: object };
+export const ASK_TOOL: { name: "agentleisure_ask_human"; description: string; inputSchema: object };
+
 export type McpGuardOptions = {
   /** Called for destructive calls and credential access; return true to let the call through. */
   approve?: ((call: { tool: string; args: unknown[] }) => Promise<boolean> | boolean) | null;
@@ -18,6 +23,13 @@ export type McpGuardOptions = {
   snapshotDir?: string | null;
   taintWindowMs?: number;
   taintCalls?: number;
+  /** Project rules from agentleisure.policy.json; they can only make the guard stricter. */
+  policy?: Policy | null;
+  /** Block nothing; count and log what would have been stopped. */
+  observe?: boolean;
+  /** Add agentleisure_policy and agentleisure_ask_human to the server's tools (default true). */
+  agentTools?: boolean;
+  cwd?: string;
   /** Path of a hash-chained JSON-lines journal. */
   journal?: string | null;
   log?: (message: string) => void;
@@ -29,6 +41,7 @@ export type JsonRpcMessage = Record<string, unknown>;
 export function createMcpGuard(options?: McpGuardOptions): {
   fromClient(message: unknown): Promise<{ forward?: unknown; reply?: JsonRpcMessage }>;
   fromServer(message: unknown): unknown;
+  stats(): { ask: number; deny: number; rules: Record<string, number> };
 };
 
 export function runMcpGuard(command: string, args: string[], options?: McpGuardOptions & {

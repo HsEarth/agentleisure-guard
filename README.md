@@ -65,6 +65,24 @@ The gateway runs locally and checks every `tools/call` before the server sees it
 
 Arguments and results stay on your machine. Only the approval summary goes to AgentLeisure, and only when you set a key.
 
+**Project rules.** Commit `agentleisure.policy.json` and the gateway adds your rules on top of the built-in ones (they can only make it stricter):
+
+```json
+{
+  "deny_tools": ["delete_repository", "*_admin"],
+  "ask_tools": ["send_email", "deploy"],
+  "protected_paths": ["./.git", "./infra", "~/.ssh"],
+  "allowed_hosts": ["api.github.com", "*.your-company.com"],
+  "observe": false
+}
+```
+
+`allowed_hosts` is an egress allowlist: a call that would send data anywhere else needs a human, so even a fooled agent cannot ship your data to an attacker's server. `npx agentleisure-guard policy init` writes a starting file and `policy check` validates it.
+
+**Observe mode** (`--observe`, or `"observe": true` in the policy): nothing is blocked, every call that would have been stopped is logged, and a summary is printed on exit. Run it for a week before switching blocking on.
+
+**The guard talks to the agent.** The gateway adds two tools to the server's list: `agentleisure_policy` returns the rules in plain words so the agent can plan around them, and `agentleisure_ask_human` lets the agent ask you a yes/no question through your approval channel when it is unsure. `--no-agent-tools` turns them off.
+
 **Remote MCP servers** (Streamable HTTP) work too: the gateway still runs locally and connects out.
 
 ```json
