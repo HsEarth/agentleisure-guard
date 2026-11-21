@@ -1,5 +1,5 @@
 // agentleisure-guard: hard limits for AI agent tools, local or through the AgentLeisure Guard API. MIT.
-export { GuardError, DEFAULT_DESTRUCTIVE, NETWORK_COMMAND, NETWORK_TOOL, SECRET_ACCESS, SECRET_FILES, classifyCall, KEY_SHAPES, scanText, scanUntrusted, entryHash, verifyJournal,
+export { GuardError, DEFAULT_DESTRUCTIVE, NETWORK_COMMAND, NETWORK_TOOL, SECRET_ACCESS, SECRET_FILES, classifyCall, isOutbound, KEY_SHAPES, scanText, scanUntrusted, entryHash, verifyJournal,
   agentLeisureApprover, createGuard } from "./agent-guard.mjs";
 import { GuardError } from "./agent-guard.mjs";
 

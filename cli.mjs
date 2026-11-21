@@ -7,6 +7,7 @@
 import { readFileSync } from "node:fs";
 import { classifyCall, scanUntrusted } from "./agent-guard.mjs";
 import { runMcpGuard, runMcpGuardRemote } from "./mcp-guard.mjs";
+import { DEFAULT_SNAPSHOT_DIR, listSnapshots, restoreSnapshot } from "./snapshots.mjs";
 
 const HELP = `agentleisure-guard: hard limits for AI agent tools
 
@@ -22,12 +23,16 @@ const HELP = `agentleisure-guard: hard limits for AI agent tools
         --ask block|allow    what to do with destructive calls when no approver is set (default: block)
         --loop-limit <n>     refuse a call repeated more than n times in 5 minutes (default 10, 0 = off)
         --no-scan            do not scan tool results and tool descriptions
+        --no-taint           do not require approval for outbound calls after a result tried to instruct the agent
+        --snapshots <dir>    where to keep copies of files before a call changes them (default ~/.agentleisure/snapshots)
+        --no-snapshot        do not copy files before a call changes them
       Environment:
         AGENTLEISURE_KEY        agent key from agentleisure.com/console: destructive calls wait for one-click approval
         AGENTLEISURE_NOTIFY_URL Slack or Discord webhook that receives the approval link
 
   agentleisure-guard check <tool> '<json args>'
   agentleisure-guard scan <file>    (use - for stdin)
+  agentleisure-guard undo [id] [--snapshots <dir>]   list snapshots, or restore one
 `;
 
 const [command, ...rest] = process.argv.slice(2);
@@ -46,6 +51,9 @@ if (command === "mcp") {
     else if (flag === "--ask") options.askMode = flags[++index] === "allow" ? "allow" : "block";
     else if (flag === "--loop-limit") options.loopLimit = Math.max(0, Number(flags[++index]) || 0);
     else if (flag === "--no-scan") options.scan = false;
+    else if (flag === "--no-taint") options.taint = false;
+    else if (flag === "--no-snapshot") options.snapshots = false;
+    else if (flag === "--snapshots") options.snapshotDir = flags[++index];
     else if (flag === "--remember-approval") options.rememberApprovalMs = Math.max(0, Number(flags[++index]) || 0) * 60_000;
     else if (flag === "--url") url = flags[++index];
     else if (flag === "--header") {
@@ -66,6 +74,25 @@ ${HELP}`); process.exit(2); }
 `); process.exit(2); }
   } else if (target.length) runMcpGuard(target[0], target.slice(1), options);
   else { process.stderr.write(HELP); process.exit(2); }
+} else if (command === "undo") {
+  const dirFlag = rest.indexOf("--snapshots");
+  const dir = dirFlag >= 0 ? rest[dirFlag + 1] : DEFAULT_SNAPSHOT_DIR;
+  const id = rest.find((word, index) => !word.startsWith("--") && index !== dirFlag + 1);
+  if (!id) {
+    const list = listSnapshots(dir).slice(0, 20);
+    if (!list.length) process.stdout.write(`No snapshots in ${dir}
+`);
+    for (const item of list) process.stdout.write(`${item.id}  ${item.ts}  ${item.tool}  ${item.items.map(entry => entry.original).join(", ")}
+`);
+  } else {
+    try {
+      const result = restoreSnapshot(id, dir);
+      process.stdout.write(`Restored: ${result.restored.join(", ")}${result.previous ? `
+The state before this restore is saved as ${result.previous}` : ""}
+`);
+    } catch (error) { process.stderr.write(`${error instanceof Error ? error.message : error}
+`); process.exitCode = 1; }
+  }
 } else if (command === "check") {
   const [tool, raw = "{}"] = rest;
   let args = raw;

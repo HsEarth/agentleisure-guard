@@ -59,6 +59,8 @@ The gateway runs locally and checks every `tools/call` before the server sees it
 - **Loops**: the same call more than 10 times in 5 minutes is refused (`--loop-limit`).
 - **Tool results**: text that tries to instruct the agent gets a warning in front of it.
 - **Tool descriptions**: a poisoned description hides the tool; a suspicious one gets a warning.
+- **Taint after injection**: once a tool result has tried to instruct the agent, any call that can send data out (network tools, commands, URLs) needs a human for the next 10 minutes. This catches the "read a poisoned PR comment, then post the keys" chain that per-call checks miss. `--no-taint` turns it off.
+- **Undo**: before a call deletes, moves or overwrites local files, the gateway copies them to `~/.agentleisure/snapshots`. `agentleisure-guard undo` lists snapshots; `agentleisure-guard undo <id>` restores one, and the state it replaces is saved too. `--no-snapshot` turns it off.
 - **Journal**: `--journal` writes a hash-chained line per call, which you can verify at https://agentleisure.com/safety/journal.
 
 Arguments and results stay on your machine. Only the approval summary goes to AgentLeisure, and only when you set a key.

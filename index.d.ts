@@ -6,6 +6,8 @@ export class GuardError extends Error {
 export const DEFAULT_DESTRUCTIVE: RegExp[];
 export const NETWORK_COMMAND: RegExp;
 export const NETWORK_TOOL: RegExp;
+/** True when a call can carry data off the machine: network tools, network commands or any URL in the arguments. */
+export function isOutbound(call: { tool?: string; args?: unknown; network?: boolean }): boolean;
 /** The same allow / ask / deny decision the Guard API, the MCP gateway and the Claude Code hook make, computed locally. */
 export function classifyCall(call: { tool?: string; args?: unknown; network?: boolean }): { decision: "allow" | "ask" | "deny"; rule: string | null; reason: string };
 export const SECRET_FILES: RegExp;

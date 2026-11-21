@@ -12,6 +12,12 @@ export type McpGuardOptions = {
   scan?: boolean;
   /** After a human approves a call, let the exact same call through for this many milliseconds (default 0 = always ask). */
   rememberApprovalMs?: number;
+  /** After a tool result tried to instruct the agent, outbound calls need approval for a while (default true). */
+  taint?: boolean;
+  /** Copy local files into this directory before a call changes them (null = off; the CLI defaults to ~/.agentleisure/snapshots). */
+  snapshotDir?: string | null;
+  taintWindowMs?: number;
+  taintCalls?: number;
   /** Path of a hash-chained JSON-lines journal. */
   journal?: string | null;
   log?: (message: string) => void;

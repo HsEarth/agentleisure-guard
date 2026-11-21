@@ -92,6 +92,14 @@ export const NETWORK_TOOL = /(http|fetch|request|post|curl|wget|webhook|email|ma
 
 // One decision for one proposed tool call, shared by the Guard API, the MCP gateway and the Claude Code hook.
 // deny: secrets would leave over the network. ask: destructive, irreversible or opens credential files. allow: nothing matched.
+// Can this call carry data off the machine? Network tools, network commands, or any URL in the arguments
+// (a GET with query parameters leaks data as well as a POST does).
+/** @param {{ tool?: string, args?: unknown, network?: boolean }} [call] */
+export function isOutbound({ tool = "", args, network } = {}) {
+  const body = `${tool}\n${scanText(args)}`;
+  return network === true || NETWORK_TOOL.test(tool) || NETWORK_COMMAND.test(body) || /\bhttps?:\/\/|\bwss?:\/\/|\bmailto:/i.test(body);
+}
+
 /** @param {{ tool?: string, args?: unknown, network?: boolean }} [call] */
 export function classifyCall({ tool = "", args, network } = {}) {
   const body = `${tool}\n${scanText(args)}`;
