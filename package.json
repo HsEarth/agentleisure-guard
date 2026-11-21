@@ -1,0 +1,64 @@
+{
+  "name": "agentleisure-guard",
+  "version": "0.3.0",
+  "description": "Hard limits for AI agent tools: human approval for destructive actions, secret blocking, loop breaker, budget cap and a tamper-evident journal. Zero dependencies, zero install scripts.",
+  "type": "module",
+  "main": "./index.mjs",
+  "types": "./index.d.ts",
+  "bin": {
+    "agentleisure-guard": "./cli.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    },
+    "./mcp": {
+      "types": "./mcp-guard.d.ts",
+      "default": "./mcp-guard.mjs"
+    }
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "agent-guard.mjs",
+    "mcp-guard.mjs",
+    "mcp-guard.d.ts",
+    "cli.mjs",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "ai",
+    "agent",
+    "llm",
+    "safety",
+    "guardrails",
+    "human-in-the-loop",
+    "approval",
+    "mcp",
+    "langchain",
+    "tools",
+    "mcp-gateway",
+    "prompt-injection"
+  ],
+  "homepage": "https://agentleisure.com/console",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HsEarth/agentleisure-guard.git"
+  },
+  "bugs": {
+    "url": "https://github.com/HsEarth/agentleisure-guard/issues"
+  },
+  "license": "MIT",
+  "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}
