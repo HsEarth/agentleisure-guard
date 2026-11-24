@@ -17,6 +17,18 @@ Hard limits for AI agent tools, enforced in code instead of the prompt. Node 18+
 npm install agentleisure-guard
 ```
 
+## Blast radius: what can your agent break right now?
+
+```sh
+npx agentleisure-guard blast          # consequences, worst first, with fixes
+npx agentleisure-guard blast --fix    # diff, confirm, back up, patch this project's agent settings
+npx agentleisure-guard blast --restore
+```
+
+Read-only checks of what an AI coding agent on this machine could use: hosting and cloud CLI logins (Railway, Vercel, AWS profiles, gcloud, kubectl context, Docker, Fly, Supabase, Netlify, Heroku), production-looking database URLs and secret variables in the environment and `.env*` files, the GitHub CLI token and default-branch protection, SSH keys without a passphrase, and agent settings (bypassed permissions, wildcard allows, missing deny rules, MCP servers with access to your whole disk or from unknown sources). Secret values are never printed, stored or sent: for the report link only finding types are sent, and `--private` sends nothing. `--fix` only touches this project's `.claude/settings*.json`, `.mcp.json` and `.cursor/mcp.json`, never credential files. Exit code 1 if anything critical is found.
+
+The fix adds deny rules and a PreToolUse hook, `npx -y agentleisure-guard hook`, which applies the guard rules locally: destructive commands ask first, secret uploads are refused.
+
 ## Crash-test your setup
 
 Your model is fine. Your setup isn't. One command runs **your** agent with **your** settings against six failures people have reported: a platform token wiping production, an ignored code freeze, leaked `.env` and SSH keys, instructions hidden in an issue, a false "all tests pass", and a runaway retry loop.

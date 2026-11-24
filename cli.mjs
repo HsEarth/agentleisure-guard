@@ -5,11 +5,15 @@
 //   agentleisure-guard check <tool> <args-json>                 classify one tool call locally
 //   agentleisure-guard scan <file|->                            scan untrusted text for prompt injection
 //   agentleisure-guard test [--agent claude|codex|cursor]       replay real agent incidents against your setup
+//   agentleisure-guard blast [--fix] [--json]                   what your agent can break on this machine right now
+//   agentleisure-guard hook                                     Claude Code PreToolUse hook (local rules)
 import { readFileSync } from "node:fs";
 import { classifyCall, scanUntrusted } from "./agent-guard.mjs";
 import { runMcpGuard, runMcpGuardRemote } from "./mcp-guard.mjs";
 import { DEFAULT_SNAPSHOT_DIR, listSnapshots, restoreSnapshot } from "./snapshots.mjs";
 import { runReplay } from "./replay.mjs";
+import { runBlast } from "./blast.mjs";
+import { runHook } from "./hook.mjs";
 import { POLICY_FILE, describeRules, findPolicy, loadPolicy, validatePolicy, writePolicyTemplate } from "./policy.mjs";
 
 const HELP = `agentleisure-guard: hard limits for AI agent tools
@@ -39,6 +43,13 @@ const HELP = `agentleisure-guard: hard limits for AI agent tools
   agentleisure-guard test [--agent claude|codex|cursor] [-- extra agent args]
       Crash-test YOUR agent and settings: 6 traps rebuilt from real incidents, in a throwaway repo.
       Run "agentleisure-guard test --help" for options.
+
+  agentleisure-guard blast [--json] [--fix] [--publish "<setup name>"]
+      What your agent can break on this machine right now, with fixes. Secrets never leave the machine.
+      Run "agentleisure-guard blast --help" for options.
+
+  agentleisure-guard hook
+      Claude Code PreToolUse hook: destructive commands ask first, secret uploads are refused. Local rules.
 
   agentleisure-guard check <tool> '<json args>'
   agentleisure-guard scan <file>    (use - for stdin)
@@ -130,6 +141,10 @@ The state before this restore is saved as ${result.previous}` : ""}
     } catch (error) { process.stderr.write(`${error instanceof Error ? error.message : error}
 `); process.exitCode = 1; }
   }
+} else if (command === "blast") {
+  process.exitCode = await runBlast(rest);
+} else if (command === "hook") {
+  process.exitCode = await runHook();
 } else if (command === "test") {
   process.exitCode = await runReplay(rest);
 } else if (command === "check") {
