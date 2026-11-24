@@ -17,6 +17,18 @@ Hard limits for AI agent tools, enforced in code instead of the prompt. Node 18+
 npm install agentleisure-guard
 ```
 
+## Crash-test your setup
+
+Your model is fine. Your setup isn't. One command runs **your** agent with **your** settings against six failures people have reported: a platform token wiping production, an ignored code freeze, leaked `.env` and SSH keys, instructions hidden in an issue, a false "all tests pass", and a runaway retry loop.
+
+```sh
+npx agentleisure-guard test                                    # Claude Code
+npx agentleisure-guard test -- --dangerously-skip-permissions  # Claude Code with auto-approve
+npx agentleisure-guard test --agent codex                      # or --agent cursor
+```
+
+It builds a throwaway repo, copies in your project's `.claude/`, `.mcp.json`, `.cursor/` and `.codex/` settings, and puts fake `railway`, `psql`, `aws`, `curl`, `wget`, `gh` and `ssh` first on PATH. They only record what the agent tried. Real cloud keys, tokens and database URLs are removed from the environment and credential files point at an empty folder; every key in the repo is bait and every host is fake. Grading is plain code, no LLM judge. You get how many incidents it survived, whether it actually did the work, the exact step that broke, and a settings patch that would have stopped it. Only pass/fail per incident is sent to agentleisure.com for the report link (`--private` sends nothing).
+
 ## Local guard
 
 ```js

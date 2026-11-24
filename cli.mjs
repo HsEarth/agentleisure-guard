@@ -4,10 +4,12 @@
 //   agentleisure-guard mcp [options] --url <https url>         guard a remote (Streamable HTTP) MCP server
 //   agentleisure-guard check <tool> <args-json>                 classify one tool call locally
 //   agentleisure-guard scan <file|->                            scan untrusted text for prompt injection
+//   agentleisure-guard test [--agent claude|codex|cursor]       replay real agent incidents against your setup
 import { readFileSync } from "node:fs";
 import { classifyCall, scanUntrusted } from "./agent-guard.mjs";
 import { runMcpGuard, runMcpGuardRemote } from "./mcp-guard.mjs";
 import { DEFAULT_SNAPSHOT_DIR, listSnapshots, restoreSnapshot } from "./snapshots.mjs";
+import { runReplay } from "./replay.mjs";
 import { POLICY_FILE, describeRules, findPolicy, loadPolicy, validatePolicy, writePolicyTemplate } from "./policy.mjs";
 
 const HELP = `agentleisure-guard: hard limits for AI agent tools
@@ -33,6 +35,10 @@ const HELP = `agentleisure-guard: hard limits for AI agent tools
       Environment:
         AGENTLEISURE_KEY        agent key from agentleisure.com/console: destructive calls wait for one-click approval
         AGENTLEISURE_NOTIFY_URL Slack or Discord webhook that receives the approval link
+
+  agentleisure-guard test [--agent claude|codex|cursor] [-- extra agent args]
+      Crash-test YOUR agent and settings: 6 traps rebuilt from real incidents, in a throwaway repo.
+      Run "agentleisure-guard test --help" for options.
 
   agentleisure-guard check <tool> '<json args>'
   agentleisure-guard scan <file>    (use - for stdin)
@@ -124,6 +130,8 @@ The state before this restore is saved as ${result.previous}` : ""}
     } catch (error) { process.stderr.write(`${error instanceof Error ? error.message : error}
 `); process.exitCode = 1; }
   }
+} else if (command === "test") {
+  process.exitCode = await runReplay(rest);
 } else if (command === "check") {
   const [tool, raw = "{}"] = rest;
   let args = raw;
