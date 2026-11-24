@@ -14,6 +14,7 @@ const SAFE_WORD = /(^|[^a-z])(staging|stage|stg|dev|develop|development|test|tes
 const CLOUD_DB = /(rds\.amazonaws\.com|supabase\.co|supabase\.com|neon\.tech|railway\.app|rlwy\.net|psdb\.cloud|planetscale|render\.com|azure|database\.windows\.net|digitalocean|ondigitalocean|herokuapp|amazonaws|mongodb\.net|cockroachlabs|aivencloud|timescale|turso\.io|upstash\.io)/i;
 const PLACEHOLDER = /^(|x+|changeme|change_me|placeholder|your[-_].*|<.*>|\$\{.*\}|\.\.\.|null|none|todo|secret|password)$/i;
 const SECRET_NAME = /(^|_)(KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|CREDENTIALS?|PRIVATE_KEY|API_KEY|ACCESS_KEY)$/i;
+const READONLY_USER = /(read_?only|readonly|reader|viewer|analytics|replica|reporting|(^|[_-])ro$|^ro[_-])/i;
 // Ends like a secret but is not one (working directories, the agent's own session plumbing, public keys).
 const NOT_SECRET = /^(PWD|OLDPWD|CLAUDE_CODE_[A-Z_]+|.*_PUBLIC_KEY|.*_PUBLISHABLE_KEY|NEXT_PUBLIC_.*|VITE_.*|.*_KEY_ID|GPG_KEY|SSH_AUTH_SOCK)$/;
 const KNOWN_MCP = [/^@modelcontextprotocol\//, /^agentleisure-guard(@|$)/, /^@anthropic-ai\//, /^@playwright\/mcp/, /^@upstash\/context7-mcp/, /^@sentry\//, /^@supabase\//, /^@stripe\//, /^@cloudflare\//, /^@vercel\//, /^@notionhq\//, /^@github\//, /^@azure\//, /^@aws\//, /^awslabs\./, /^mcp-server-git(@|$)/, /^mcp-server-fetch(@|$)/, /^mcp-server-time(@|$)/, /^mcp-server-sqlite(@|$)/];
@@ -108,8 +109,10 @@ export function detect(options = {}) {
       const value = String(raw ?? "").trim();
       if (PLACEHOLDER.test(value)) continue;
       if (/^(postgres(ql)?|mysql|mariadb|mongodb(\+srv)?|redis|rediss|sqlserver|cockroachdb):\/\//i.test(value)) {
-        let host = ""; let db = "";
-        try { const url = new URL(value); host = url.hostname; db = url.pathname; } catch { host = value.split("@").pop() ?? ""; }
+        let host = ""; let db = ""; let user = "";
+        try { const url = new URL(value); host = url.hostname; db = url.pathname; user = decodeURIComponent(url.username); } catch { host = value.split("@").pop() ?? ""; }
+        // A read-only database user cannot delete anything: still a secret, but not a way to wipe production.
+        if (READONLY_USER.test(user.split(".")[0])) { if (value.length >= 8) secretNames.push(name); continue; }
         const prodLike = (PROD_WORD.test(host) || PROD_WORD.test(db) || PROD_WORD.test(name) || CLOUD_DB.test(host)) && !SAFE_WORD.test(host) && !SAFE_WORD.test(db) && !SAFE_WORD.test(name) && !/^(localhost|127\.|0\.0\.0\.0|\[?::1)/.test(host);
         if (prodLike) add("prod_database_url", source, `${name} points to a production-looking database`);
         continue;

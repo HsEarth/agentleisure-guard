@@ -80,6 +80,15 @@ test("staging, local and example database URLs are not production", () => {
   assert.ok(detect({ home: join(root, "h"), cwd: root, env: { DATABASE_URL: "postgres://u:p@ep-cool.eu-central-1.aws.neon.tech/app" }, appdata: join(root, "a"), gh: false }).some(finding => finding.type === "prod_database_url"));
 });
 
+test("a read-only database user is a secret, not a way to delete production", () => {
+  const root = mkdtempSync(join(tmpdir(), "agentleisure-blast-ro-"));
+  const run = env => detect({ home: join(root, "h"), cwd: root, env, appdata: join(root, "a"), gh: false }).map(finding => finding.type);
+  const readonly = run({ DATABASE_URL: "postgres://agent_readonly.abcdefgh:longpassword123@aws-0-eu-central-1.pooler.supabase.com:6543/postgres" });
+  assert.ok(!readonly.includes("prod_database_url"));
+  assert.ok(readonly.includes("env_secrets"));
+  assert.ok(run({ DATABASE_URL: "postgres://postgres.abcdefgh:longpassword123@aws-0-eu-central-1.pooler.supabase.com:6543/postgres" }).includes("prod_database_url"));
+});
+
 test("ssh keys: only unencrypted private keys count, judged from the header", () => {
   assert.equal(unencryptedKey(opensshKey("none")), true);
   assert.equal(unencryptedKey(opensshKey("aes256-ctr")), false);
