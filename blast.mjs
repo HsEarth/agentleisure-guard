@@ -15,8 +15,9 @@ const CLOUD_DB = /(rds\.amazonaws\.com|supabase\.co|supabase\.com|neon\.tech|rai
 const PLACEHOLDER = /^(|x+|changeme|change_me|placeholder|your[-_].*|<.*>|\$\{.*\}|\.\.\.|null|none|todo|secret|password)$/i;
 const SECRET_NAME = /(^|_)(KEY|TOKEN|SECRET|PASSWORD|PASSWD|PWD|CREDENTIALS?|PRIVATE_KEY|API_KEY|ACCESS_KEY)$/i;
 const READONLY_USER = /(read_?only|readonly|reader|viewer|analytics|replica|reporting|(^|[_-])ro$|^ro[_-])/i;
-// Ends like a secret but is not one (working directories, the agent's own session plumbing, public keys).
-const NOT_SECRET = /^(PWD|OLDPWD|CLAUDE_CODE_[A-Z_]+|.*_PUBLIC_KEY|.*_PUBLISHABLE_KEY|NEXT_PUBLIC_.*|VITE_.*|.*_KEY_ID|GPG_KEY|SSH_AUTH_SOCK)$/;
+// Ends like a secret but is not one (working directories, the agent's own session plumbing, public keys such as
+// Supabase anon keys, which are designed to ship to the browser and are limited by row-level security).
+const NOT_SECRET = /^(PWD|OLDPWD|CLAUDE_CODE_[A-Z_]+|.*_PUBLIC_KEY|.*_PUBLISHABLE_KEY|NEXT_PUBLIC_.*|VITE_.*|.*_KEY_ID|GPG_KEY|SSH_AUTH_SOCK|(SUPABASE_)?ANON_KEY|SUPABASE_ANON_KEY)$/;
 const KNOWN_MCP = [/^@modelcontextprotocol\//, /^agentleisure-guard(@|$)/, /^@anthropic-ai\//, /^@playwright\/mcp/, /^@upstash\/context7-mcp/, /^@sentry\//, /^@supabase\//, /^@stripe\//, /^@cloudflare\//, /^@vercel\//, /^@notionhq\//, /^@github\//, /^@azure\//, /^@aws\//, /^awslabs\./, /^mcp-server-git(@|$)/, /^mcp-server-fetch(@|$)/, /^mcp-server-time(@|$)/, /^mcp-server-sqlite(@|$)/];
 
 function read(path, max = 512 * 1024) {

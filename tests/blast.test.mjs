@@ -68,7 +68,7 @@ test("every detector finds its credential or setting in a fixture HOME", () => {
 
 test("a clean machine is contained", () => {
   const root = mkdtempSync(join(tmpdir(), "agentleisure-blast-clean-"));
-  const findings = detect({ home: join(root, "home"), cwd: root, env: { PWD: "/somewhere/long/enough", NEXT_PUBLIC_KEY: "public-value-123" }, appdata: join(root, "a"), gh: false });
+  const findings = detect({ home: join(root, "home"), cwd: root, env: { PWD: "/somewhere/long/enough", NEXT_PUBLIC_KEY: "public-value-123", SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiJ9.anon.public" }, appdata: join(root, "a"), gh: false });
   assert.deepEqual(findings, []);
   assert.equal(summarize(findings).contained, true);
 });

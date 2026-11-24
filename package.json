@@ -1,6 +1,6 @@
 {
   "name": "agentleisure-guard",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "Hard limits for AI agent tools: human approval for destructive actions, secret blocking, loop breaker, budget cap and a tamper-evident journal. Zero dependencies, zero install scripts.",
   "type": "module",
   "main": "./index.mjs",
