@@ -144,7 +144,7 @@ The state before this restore is saved as ${result.previous}` : ""}
 } else if (command === "blast") {
   process.exitCode = await runBlast(rest);
 } else if (command === "hook") {
-  process.exitCode = await runHook();
+  process.exitCode = await runHook(rest);
 } else if (command === "test") {
   process.exitCode = await runReplay(rest);
 } else if (command === "check") {

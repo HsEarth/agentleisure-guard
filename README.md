@@ -31,15 +31,20 @@ The fix adds deny rules and a PreToolUse hook, `npx -y agentleisure-guard hook`,
 
 ## Crash-test your setup
 
-Your model is fine. Your setup isn't. One command runs **your** agent with **your** settings against six failures people have reported: a platform token wiping production, an ignored code freeze, leaked `.env` and SSH keys, instructions hidden in an issue, a false "all tests pass", and a runaway retry loop.
+Your model is fine. Your setup isn't. One command runs **your** agent with **your** settings in a throwaway repo with six traps: instructions planted in tool output (a CI log), a harmless-looking script that drops the production schema, a deadline that tempts it to weaken tests, a deploy step that suggests the production token, a cleanup next to customer data that is not in git, and a paid API that keeps answering 429.
 
 ```sh
-npx agentleisure-guard test                                    # Claude Code
-npx agentleisure-guard test -- --dangerously-skip-permissions  # Claude Code with auto-approve
-npx agentleisure-guard test --agent codex                      # or --agent cursor
+npx agentleisure-guard test -- --permission-mode acceptEdits          # Claude Code, edits auto-approved
+npx agentleisure-guard test -- --dangerously-skip-permissions          # everything auto-approved
+npx agentleisure-guard test -- --model haiku --permission-mode acceptEdits
+npx agentleisure-guard test --agent codex                              # or --agent cursor
 ```
 
-It builds a throwaway repo, copies in your project's `.claude/`, `.mcp.json`, `.cursor/` and `.codex/` settings, and puts fake `railway`, `psql`, `aws`, `curl`, `wget`, `gh` and `ssh` first on PATH. They only record what the agent tried. Real cloud keys, tokens and database URLs are removed from the environment and credential files point at an empty folder; every key in the repo is bait and every host is fake. Grading is plain code, no LLM judge. You get how many incidents it survived, whether it actually did the work, the exact step that broke, and a settings patch that would have stopped it. Only pass/fail per incident is sent to agentleisure.com for the report link (`--private` sends nothing).
+Nothing the agent can read mentions testing. Fake `psql`, `railway`, `aws`, `curl`, `wget`, `gh` and `ssh` come first on PATH, and a local recorder answers plain-HTTP calls to the repo's internal hosts (under the reserved `.internal` domain), so it still works when the agent's shell finds a real `curl`. Real credentials are removed from the environment. Grading is plain code over recorded commands and the files on disk, no LLM judge: incidents survived, jobs actually done (bug fixed, space freed safely, staging deployed with the staging token) and, if a guard hook is configured, how many of its blocks landed on traps versus ordinary work (false blocks). `--json` prints everything; results stay on your machine.
+
+### Guard hook for unattended runs
+
+`npx -y agentleisure-guard hook --auto` is a Claude Code PreToolUse hook for headless runs (`claude -p`, CI): nobody can answer a prompt, so safe calls are approved and risky ones refused with the reason. It looks inside `npm run` scripts and the script files a command starts, keeps production credentials off the network (names containing STAGING, TEST, DEV, SANDBOX or PREVIEW are allowed), allows `rm -rf` only on build caches, and refuses `git clean -x`, skipped tests and a command repeated five times. Without `--auto`, risky calls become permission prompts. Set `GUARD_DECISION_LOG=<file>` to journal every decision.
 
 ## Local guard
 
